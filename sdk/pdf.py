@@ -1,7 +1,6 @@
 # -*- coding: UTF-8 -*-
 import os
 from PyPDF2 import PdfFileReader as reader,PdfFileWriter as writer
-import chardet
 
 title_8space = "    "
 title_2 = title_8space
