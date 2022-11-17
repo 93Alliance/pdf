@@ -33,10 +33,12 @@ class Bookmark(QWidget):
 
         opLayout = QHBoxLayout()
 
-        self.exportBtn = QPushButton("处理")
+        self.importBtn = QPushButton("导入书签")
+        self.exportBtn = QPushButton("导出书签")
 
         opLayout.addStretch(1)
         opLayout.addWidget(self.exportBtn)
+        opLayout.addWidget(self.importBtn)
 
         settingsLayout.addLayout(settingLeftLayout, 1)
         settingsLayout.addLayout(settingRightLayout, 1)
@@ -47,7 +49,8 @@ class Bookmark(QWidget):
 
         self.pdfFileEdit.mousePressed.connect(self.onClickPdfFile)
         self.txtFileEdit.mousePressed.connect(self.onClickTxtFile)
-        self.exportBtn.clicked.connect(self.export)
+        self.importBtn.clicked.connect(self.importBookmarks)
+        self.exportBtn.clicked.connect(self.exportBookmarks)
 
     def onClickPdfFile(self):
         self.pdfFile = self.selectPdfFile()
@@ -62,7 +65,7 @@ class Bookmark(QWidget):
         self.pdfFile = self.pdfFileEdit.text()
         self.pdfMode = self.pdfModeCmbx.currentText()
 
-    def export(self):
+    def importBookmarks(self):
         self.fromSettings()
         if self.pdfFile == '' or self.txtFile == '':
             return
@@ -76,6 +79,15 @@ class Bookmark(QWidget):
         pdf.addBookmarksByReadTxt(self.txtFile)
         pdf.save2file(pdf.fileName + "_目录书签版.pdf")
         MsgboxOk(self, "成功", "添加书签成功!")
+    
+    def exportBookmarks(self):
+        self.fromSettings()
+        if self.pdfFile == '':
+            return
+
+        pdf = PDFHandler(self.pdfFile, PDFHandleMode.COPY)
+        pdf.bookmarks2Txt()
+        MsgboxOk(self, "成功", "导出书签成功!")
 
     def selectPdfFile(self):
         file, filetype = QFileDialog.getOpenFileName(self,  "选取文件", "./", "Text Files (*.pdf)") 

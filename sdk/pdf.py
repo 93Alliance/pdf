@@ -59,6 +59,30 @@ class PDFHandler(object):
 
         return bookmarks
 
+    def bookmarks2Txt(self):
+        bookmarks = self.parseOutlines()
+        with open(self.fileName + ".txt", "w") as f:
+            for item in bookmarks:
+                f.write(self.__treeNode2LineStr(item, 1))
+                for item2 in item.children:
+                    f.write(self.__treeNode2LineStr(item2, 2))
+                    for item3 in item2.children:
+                        f.write(self.__treeNode2LineStr(item3, 3))
+                        for item4 in item3.children:
+                            f.write(self.__treeNode2LineStr(item4, 4))
+
+    def __treeNode2LineStr(self, item: Tree, level: int):
+        if level == 1:
+            space = ""
+        elif level == 2:
+            space = title_2
+        elif level == 3:
+            space = title_3
+        elif level == 4:
+            space = title_4
+        
+        return space +  item.title + "@" + str(item.page) + "\n"
+        
     def __parseSubOutlines(self, item, node: Tree):
         for subItem in item:
             # 如果是list说明是上一个元素的子元素
