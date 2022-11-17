@@ -2,8 +2,13 @@
 
 # 打包
 
+windows
 ```
 pyinstaller -F -w --upx-exclude=vcruntime140.dll main.py
+```
+linux
+```
+pyinstaller -F -w main.py
 ```
 修改 main.spec 中的
 ```
