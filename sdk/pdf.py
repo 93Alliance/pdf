@@ -38,22 +38,55 @@ class PDFHandler(object):
         if mode == PDFHandleMode.COPY:
             for page in self.__pdf.pages:
                 self.__writeablePdf.add_page(page)
-            
-            for outlines in self.__pdf.outlines:
-                self.addOutlinesAsBookmark(self.__writeablePdf, outlines)
+
+            bookmarks = self.getAllOutlines(self.__pdf.getOutlines())
+            self.addBookmarks(bookmarks)
             
         elif mode == PDFHandleMode.NEWLY:
             for idx in range(self.pagesNum):
                 page = self.__pdf.getPage(idx)
                 self.__writeablePdf.insertPage(page, idx)
 
-    def addOutlinesAsBookmark(self, writer, outlines):
-        if not isinstance(outlines, list):
-            page_nb = 0  # I don't know how to get the page number
-            writer.add_bookmark(outlines.title, page_nb, None)
-        else:
-            for o in outlines:
-                self.addOutlinesAsBookmark(writer, o)
+    def getAllOutlines(self, bookmarkList):
+        bookmarks: list[Tree] = []
+        for item in bookmarkList:
+            # 如果是list代表是上一个的子元素
+            if isinstance(item, list):
+                for item2 in item:
+                    if isinstance(item2, list):
+                        for item3 in item2:
+                            if isinstance(item3, list):
+                                for item4 in item3:
+                                    page = self.__pdf.getDestinationPageNumber(item4)+1
+                                    title = item4.title
+                                    tmp = Tree(title, page, [])
+                                    parent1 = bookmarks[-1]
+                                    parent2 = parent1.children[-1] # 取出2级
+                                    parent3 = parent2.children[-1] # 取出3级
+                                    parent3.children.append(tmp)
+                                continue
+                            page = self.__pdf.getDestinationPageNumber(item3)+1
+                            title = item3.title
+                            tmp = Tree(title, page, [])
+                            parent1 = bookmarks[-1]
+                            parent2 = parent1.children[-1]
+                            parent2.children.append(tmp)
+                        continue
+                    
+                    page = self.__pdf.getDestinationPageNumber(item2)+1
+                    title = item2.title
+                    tmp = Tree(title, page, [])
+                    parent1 = bookmarks[-1]
+                    parent1.children.append(tmp)
+
+                continue
+            
+            page = self.__pdf.getDestinationPageNumber(item)+1
+            title = item.title
+            tmp = Tree(title, page, [])
+            bookmarks.append(tmp)
+
+        return bookmarks
 
     def save2file(self, newFileName):
         # 保存修改后的PDF文件内容到文件中
@@ -107,7 +140,7 @@ class PDFHandler(object):
 
     def readBookmarksFromTxt(self, txtFilePath):
         bookmarks: list[Tree] = []
-        with open(txtFilePath,'r') as fin:
+        with open(txtFilePath,'r', encoding='UTF-8') as fin:
             for line in fin:
                 line = line.replace("\t","    ") # 替换tab为4个空格
 
