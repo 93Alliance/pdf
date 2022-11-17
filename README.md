@@ -36,7 +36,7 @@ pyinstaller -F -w main.py
 ```
 修改 main.spec 中的
 ```
-excludes=["numpy", "scipy", "opencv", "PySide6"],
+excludes=["numpy", "scipy", "opencv", "PySide6", "chardet"],
 ```
 再次执行
 ```

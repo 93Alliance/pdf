@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import os
 from PyPDF2 import PdfFileReader as reader,PdfFileWriter as writer
+import chardet
 
 title_8space = "    "
 title_2 = title_8space
@@ -61,7 +62,7 @@ class PDFHandler(object):
 
     def bookmarks2Txt(self):
         bookmarks = self.parseOutlines()
-        with open(self.fileName + ".txt", "w") as f:
+        with open(self.fileName + ".txt", "w", encoding='utf-8') as f:
             for item in bookmarks:
                 f.write(self.__treeNode2LineStr(item, 1))
                 for item2 in item.children:
@@ -81,7 +82,8 @@ class PDFHandler(object):
         elif level == 4:
             space = title_4
         
-        return space +  item.title + "@" + str(item.page) + "\n"
+        title = item.title
+        return space + title + "@" + str(item.page) + "\n"
         
     def __parseSubOutlines(self, item, node: Tree):
         for subItem in item:
