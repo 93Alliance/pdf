@@ -1,10 +1,10 @@
 # -*- coding: UTF-8 -*-
 
 import time
+from qt_material import QtStyleTools
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QWidget, QMessageBox, QToolBar, QToolButton, QStackedLayout
 from PyQt5.QtCore import Qt
-from qt_material import QtStyleTools
 from bookmark import Bookmark
 
 class App(QtWidgets.QMainWindow, QtStyleTools):
