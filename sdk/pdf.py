@@ -39,7 +39,7 @@ class PDFHandler(object):
             for page in self.__pdf.pages:
                 self.__writeablePdf.add_page(page)
 
-            bookmarks = self.getAllOutlines(self.__pdf.getOutlines())
+            bookmarks = self.parseOutlines()
             self.addBookmarks(bookmarks)
             
         elif mode == PDFHandleMode.NEWLY:
@@ -47,46 +47,30 @@ class PDFHandler(object):
                 page = self.__pdf.getPage(idx)
                 self.__writeablePdf.insertPage(page, idx)
 
-    def getAllOutlines(self, bookmarkList):
+    def parseOutlines(self):
         bookmarks: list[Tree] = []
+        bookmarkList = self.__pdf.getOutlines()
         for item in bookmarkList:
-            # 如果是list代表是上一个的子元素
             if isinstance(item, list):
-                for item2 in item:
-                    if isinstance(item2, list):
-                        for item3 in item2:
-                            if isinstance(item3, list):
-                                for item4 in item3:
-                                    page = self.__pdf.getDestinationPageNumber(item4)+1
-                                    title = item4.title
-                                    tmp = Tree(title, page, [])
-                                    parent1 = bookmarks[-1]
-                                    parent2 = parent1.children[-1] # 取出2级
-                                    parent3 = parent2.children[-1] # 取出3级
-                                    parent3.children.append(tmp)
-                                continue
-                            page = self.__pdf.getDestinationPageNumber(item3)+1
-                            title = item3.title
-                            tmp = Tree(title, page, [])
-                            parent1 = bookmarks[-1]
-                            parent2 = parent1.children[-1]
-                            parent2.children.append(tmp)
-                        continue
-                    
-                    page = self.__pdf.getDestinationPageNumber(item2)+1
-                    title = item2.title
-                    tmp = Tree(title, page, [])
-                    parent1 = bookmarks[-1]
-                    parent1.children.append(tmp)
-
+                self.__parseSubOutlines(item, bookmarks[-1])
                 continue
-            
-            page = self.__pdf.getDestinationPageNumber(item)+1
-            title = item.title
-            tmp = Tree(title, page, [])
-            bookmarks.append(tmp)
+
+            bookmarks.append(self.__toTreeNode(item))
 
         return bookmarks
+
+    def __parseSubOutlines(self, item, node: Tree):
+        for subItem in item:
+            # 如果是list说明是上一个元素的子元素
+            if isinstance(subItem, list):
+                self.__parseSubOutlines(subItem, node.children[-1])
+            else:
+                node.children.append(self.__toTreeNode(subItem))
+
+    def __toTreeNode(self, item):
+        page = self.__pdf.getDestinationPageNumber(item)+1
+        title = item.title
+        return Tree(title, page, [])
 
     def save2file(self, newFileName):
         # 保存修改后的PDF文件内容到文件中
