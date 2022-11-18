@@ -15,6 +15,8 @@ class PDFHandleMode(object):
     COPY = 'copy'
     # 仅保留源PDF文件的页面内容，在此基础上修改
     NEWLY = 'newly'
+    # 什么都不做
+    NONE = 'none'
 
 class Tree:
     def __init__(self, title: str, page: str, children = []):
@@ -39,7 +41,7 @@ class PDFHandler(object):
             for page in self.__pdf.pages:
                 self.__writeablePdf.add_page(page)
 
-            bookmarks = self.parseOutlines()
+            bookmarks = self.getAllBookmarks()
             self.addBookmarks(bookmarks)
             
         elif mode == PDFHandleMode.NEWLY:
@@ -47,7 +49,67 @@ class PDFHandler(object):
                 page = self.__pdf.getPage(idx)
                 self.__writeablePdf.insertPage(page, idx)
 
-    def parseOutlines(self):
+    def getBookmarksByPage(self, pageStart: int, pageEnd: int, repage = True):
+        # repage代表是否按照起始页重新设定书签的页码，在分割的时候是需要的
+        bookmarks = self.getAllBookmarks()
+        nbm: list[Tree] = []
+        for bm in bookmarks:
+            if bm.page < pageStart or bm.page > pageEnd:
+                continue
+            
+            npage = bm.page
+            if repage:
+                npage = bm.page - pageStart + 1
+
+            nbm.append(Tree(bm.title, npage, []))
+
+            for bm2 in bm.children:
+                if bm2.page < pageStart or bm2.page > pageEnd:
+                    continue
+
+                parent1 = nbm[-1]
+                npage = bm2.page
+                if repage:
+                    npage = bm2.page - pageStart + 1
+                parent1.children.append(Tree(bm2.title, npage, []))
+
+                for bm3 in bm2.children:
+                    if bm3.page < pageStart or bm3.page > pageEnd:
+                        continue
+
+                    parent1 = nbm[-1]
+                    parent2 = parent1.children[-1]
+                    npage = bm3.page
+                    if repage:
+                        npage = bm3.page - pageStart + 1
+                    parent2.children.append(Tree(bm3.title, npage, []))
+
+                    for bm4 in bm3.children:
+                        if bm4.page < pageStart or bm4.page > pageEnd:
+                            continue
+                        
+                        parent1 = nbm[-1]
+                        parent2 = parent1.children[-1]
+                        parent3 = parent2.children[-1]
+                        npage = bm4.page
+                        if repage:
+                            npage = bm4.page - pageStart + 1
+                        parent3.children.append(Tree(bm4.title, npage, []))
+
+        return nbm
+
+    def split2File(self, start: int, end: int): 
+        pdfWriter = writer()
+        for idx in range(start, end + 1):
+            page = self.__pdf.getPage(idx)
+            pdfWriter.insertPage(page, idx-start)
+        
+        bookmarks = self.getBookmarksByPage(start, end)
+        # 因为分割了，所以页码会发生变化
+        self.__addBookmarks(pdfWriter, bookmarks)
+        self.__save2File(pdfWriter, self.fileName + "_{0}-{1}.pdf".format(start, end))
+        
+    def getAllBookmarks(self):
         bookmarks: list[Tree] = []
         bookmarkList = self.__pdf.getOutlines()
         for item in bookmarkList:
@@ -59,8 +121,7 @@ class PDFHandler(object):
 
         return bookmarks
 
-    def bookmarks2Txt(self):
-        bookmarks = self.parseOutlines()
+    def bookmarks2Txt(self, bookmarks):
         with open(self.fileName + ".txt", "w", encoding='utf-8') as f:
             for item in bookmarks:
                 f.write(self.__treeNode2LineStr(item, 1))
@@ -97,12 +158,18 @@ class PDFHandler(object):
         title = item.title
         return Tree(title, page, [])
 
-    def save2file(self, newFileName):
+    def save2File(self, newFileName):
         # 保存修改后的PDF文件内容到文件中
-        with open(newFileName, 'wb') as fout:
-            self.__writeablePdf.write(fout)
+        self.__save2File(self.__writeablePdf, newFileName)
 
-    def addBookmark(self,title: str,page,parent = None, color = None, fit = '/Fit'):
+    def __save2File(self, writer, newFileName):
+        with open(newFileName, 'wb') as fout:
+            writer.write(fout)
+
+    def addBookmark(self, title: str,page,parent = None, color = None, fit = '/Fit'):
+        return self.__addBookmark(self.__writeablePdf, title, page, parent, color, fit)
+
+    def __addBookmark(self, write, title: str,page,parent = None, color = None, fit = '/Fit'):
         '''
         往PDF文件中添加单条书签，并且保存为一个新的PDF文件
         :param str title: 书签标题
@@ -113,22 +180,24 @@ class PDFHandler(object):
         :param str fit: 跳转到书签页后的缩放方式
         :return: None
         '''
-        # 为了防止乱码，这里对title进行utf-8编码
-        return self.__writeablePdf.addBookmark(title,page - 1,parent = parent,color = color,fit = fit)
+        return write.addBookmark(title,page - 1,parent = parent,color = color,fit = fit)
 
     def addBookmarks(self, bookmarks):
+        return self.__addBookmarks(self.__writeablePdf, bookmarks)
+
+    def __addBookmarks(self, writer, bookmarks):
         count = 0
         for b in bookmarks:
             count += 1
             # 1级书签
-            node = self.addBookmark(b.title, b.page, None)
+            node = self.__addBookmark(writer, b.title, b.page, None)
             if len(b.children) == 0:
                 continue
 
             # 2级书签
             for b2 in b.children:
                 count += 1
-                node2 = self.addBookmark(b2.title, b2.page, node)
+                node2 = self.__addBookmark(writer, b2.title, b2.page, node)
 
                 if len(b2.children) == 0:
                     continue
@@ -136,7 +205,7 @@ class PDFHandler(object):
                 # 3级书签
                 for b3 in b2.children:
                     count += 1
-                    node3 = self.addBookmark(b3.title, b3.page, node2)
+                    node3 = self.__addBookmark(writer, b3.title, b3.page, node2)
 
                     if len(b3.children) == 0:
                         continue
@@ -144,7 +213,7 @@ class PDFHandler(object):
                     # 4级书签
                     for b4 in b3.children:
                         count += 1
-                        self.addBookmark(b4.title, b4.page, node3)
+                        self.__addBookmark(writer, b4.title, b4.page, node3)
         return count
 
     def readBookmarksFromTxt(self, txtFilePath):

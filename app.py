@@ -6,6 +6,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QWidget, QMessageBox, QToolBar, QToolButton, QStackedLayout
 from PyQt5.QtCore import Qt
 from bookmark import Bookmark
+from spliter import Spliter
 
 class App(QtWidgets.QMainWindow, QtStyleTools):
     def __init__(self, parent=None):
@@ -17,17 +18,22 @@ class App(QtWidgets.QMainWindow, QtStyleTools):
         # 添加侧边栏
         toolBar = QToolBar(self)
         self.addToolBar(Qt.LeftToolBarArea, toolBar)
-        # 添加主页
+        # 添加书签工具页面
         bookmarkBtn = self.createButton("书签工具")
         bookmarkBtn.clicked.connect(lambda: self.onButtonClicked(0))
         toolBar.addWidget(bookmarkBtn)
 
+        # 添加分割工具页面
+        spliterBtn = self.createButton("分页工具")
+        spliterBtn.clicked.connect(lambda: self.onButtonClicked(1))
+        toolBar.addWidget(spliterBtn)
 
         mainWidget = QWidget(self)
         self.mainLayout = QStackedLayout(mainWidget)
 
         # 设置页面模块
         self.mainLayout.addWidget(self.bookmarkUI())
+        self.mainLayout.addWidget(self.spliterUI())
 
         mainWidget.setLayout(self.mainLayout)
         # 设置中心窗口
@@ -59,3 +65,8 @@ class App(QtWidgets.QMainWindow, QtStyleTools):
     def bookmarkUI(self):
         self.bookmark = Bookmark(self)
         return self.bookmark
+
+    def spliterUI(self):
+        self.spliter = Spliter(self)
+        return self.spliter
+    

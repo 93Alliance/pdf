@@ -4,3 +4,4 @@ dist/
 build/
 output/
 log/
+test.py
