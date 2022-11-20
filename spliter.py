@@ -60,15 +60,19 @@ class Spliter(QWidget):
                     continue
                 elif len(p2) == 1:
                     start = int(p2[0])
-                    pdf.split2File(start, start)
+                    self.split2File(pdf, start, start)
                 else: # 大于1的
                     start = int(p2[0])
                     end = int(p2[1])
-                    pdf.split2File(start, end)
+                    self.split2File(pdf, start, end)
 
         except Exception as msg:
             MsgboxOk(self, "错误", str(msg))
             return
+
+    def split2File(self, pdf: PDFHandler, start: int, end: int):
+        writer = pdf.split(pdf.reader, start, end)
+        pdf.save2File(writer, pdf.fileName + "_{0}-{1}.pdf".format(start, end))
 
     def onClickPdfFile(self):
         self.pdfFile = self.selectPdfFile()

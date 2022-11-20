@@ -75,9 +75,11 @@ class Bookmark(QWidget):
         elif self.pdfMode == '清空':
             mode = PDFHandleMode.NEWLY
 
+        bookmarks = PDFHandler.readBookmarksFromTxt(self.txtFile)
         pdf = PDFHandler(self.pdfFile, mode)
-        pdf.addBookmarksByReadTxt(self.txtFile)
-        pdf.save2File(pdf.fileName + "_目录书签版.pdf")
+        pdf.addBookmarks(pdf.writer, bookmarks)
+
+        pdf.save2File(pdf.writer, pdf.fileName + "_目录书签版.pdf")
         MsgboxOk(self, "成功", "添加书签成功!")
     
     def exportBookmarks(self):
@@ -86,7 +88,8 @@ class Bookmark(QWidget):
             return
 
         pdf = PDFHandler(self.pdfFile, PDFHandleMode.NONE)
-        pdf.bookmarks2Txt(pdf.getAllBookmarks())
+        bookmarks = pdf.getAllBookmarks(pdf.reader)
+        pdf.bookmarks2Txt(bookmarks, pdf.fileName + ".txt")
         MsgboxOk(self, "成功", "导出书签成功!")
 
     def selectPdfFile(self):
